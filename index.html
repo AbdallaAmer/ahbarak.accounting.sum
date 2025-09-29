@@ -823,4 +823,222 @@
         function updateSummary() {
             const totalSales = salesData.reduce((sum, sale) => sum + sale.amount, 0);
             const totalCollected = salesData.filter(sale => sale.status === 'collected').reduce((sum, sale) => sum + sale.amount, 0);
-            const totalPending = salesData.filter(sale => sale.status === 'pending').reduce((sum, sale) => sum +
+            const totalPending = salesData.filter(sale => sale.status === 'pending').reduce((sum, sale) => sum + sale.amount, 0);
+            const totalDebt = inventoryData.filter(item => item.paymentStatus === 'unpaid').reduce((sum, item) => sum + (item.cost * item.quantity), 0);
+            const totalProfit = salesData.filter(sale => sale.status === 'collected').reduce((sum, sale) => sum + sale.profit, 0);
+            const inventoryValue = inventoryData.filter(item => item.remainingQuantity > 0).reduce((sum, item) => sum + (item.cost * item.remainingQuantity), 0);
+
+            document.getElementById('totalSales').textContent = `${totalSales.toFixed(2)}`;
+            document.getElementById('totalCollected').textContent = `${totalCollected.toFixed(2)}`;
+            document.getElementById('totalPending').textContent = `${totalPending.toFixed(2)}`;
+            document.getElementById('totalDebt').textContent = `${totalDebt.toFixed(2)}`;
+            document.getElementById('totalProfit').textContent = `${totalProfit.toFixed(2)}`;
+            document.getElementById('inventoryValue').textContent = `${inventoryValue.toFixed(2)}`;
+
+            updateSuppliersTable();
+        }
+
+        function updateProfitAnalysis() {
+            const collectedSales = salesData.filter(sale => sale.status === 'collected');
+            const totalRevenue = collectedSales.reduce((sum, sale) => sum + sale.amount, 0);
+            const totalCosts = collectedSales.reduce((sum, sale) => sum + sale.totalCost, 0);
+            const netProfit = totalRevenue - totalCosts;
+
+            document.getElementById('totalRevenue').textContent = `${totalRevenue.toFixed(2)}`;
+            document.getElementById('totalCosts').textContent = `${totalCosts.toFixed(2)}`;
+            document.getElementById('netProfit').textContent = `${netProfit.toFixed(2)}`;
+            document.getElementById('netProfit').className = netProfit >= 0 ? 'profit-positive' : 'profit-negative';
+
+            // Update profit table by product
+            const profitByProduct = {};
+            collectedSales.forEach(sale => {
+                const product = sale.productName;
+                if (!profitByProduct[product]) {
+                    profitByProduct[product] = {
+                        unitsSold: 0,
+                        revenue: 0,
+                        cost: 0,
+                        profit: 0
+                    };
+                }
+                profitByProduct[product].unitsSold += sale.quantitySold;
+                profitByProduct[product].revenue += sale.amount;
+                profitByProduct[product].cost += sale.totalCost;
+                profitByProduct[product].profit += sale.profit;
+            });
+
+            const tbody = document.getElementById('profitTable');
+            tbody.innerHTML = '';
+
+            Object.entries(profitByProduct).forEach(([product, data]) => {
+                const row = tbody.insertRow();
+                const profitPerUnit = data.unitsSold > 0 ? data.profit / data.unitsSold : 0;
+                const margin = data.revenue > 0 ? (data.profit / data.revenue * 100) : 0;
+                const profitClass = data.profit >= 0 ? 'profit-positive' : 'profit-negative';
+
+                row.innerHTML = `
+                    <td>${product}</td>
+                    <td>${data.unitsSold}</td>
+                    <td>${data.revenue.toFixed(2)}</td>
+                    <td>${data.cost.toFixed(2)}</td>
+                    <td class="${profitClass}">${profitPerUnit.toFixed(2)}</td>
+                    <td class="${profitClass}">${data.profit.toFixed(2)}</td>
+                    <td class="${profitClass}">${margin.toFixed(1)}%</td>
+                `;
+            });
+        }
+
+        function updateReports() {
+            const totalSales = salesData.reduce((sum, sale) => sum + sale.amount, 0);
+            const totalCollected = salesData.filter(sale => sale.status === 'collected').reduce((sum, sale) => sum + sale.amount, 0);
+            const collectionRate = totalSales > 0 ? (totalCollected / totalSales * 100).toFixed(1) : 0;
+
+            const collectedSales = salesData.filter(sale => sale.status === 'collected');
+            const totalRevenue = collectedSales.reduce((sum, sale) => sum + sale.amount, 0);
+            const totalCosts = collectedSales.reduce((sum, sale) => sum + sale.totalCost, 0);
+            const avgProfitMargin = totalRevenue > 0 ? ((totalRevenue - totalCosts) / totalRevenue * 100).toFixed(1) : 0;
+
+            const totalInventoryValue = inventoryData.reduce((sum, item) => sum + (item.cost * item.quantity), 0);
+            const soldInventoryValue = inventoryData.reduce((sum, item) => sum + (item.cost * (item.quantity - item.remainingQuantity)), 0);
+            const inventoryTurnover = totalInventoryValue > 0 ? (soldInventoryValue / totalInventoryValue).toFixed(1) : 0;
+
+            document.getElementById('collectionRate').textContent = `${collectionRate}%`;
+            document.getElementById('avgProfitMargin').textContent = `${avgProfitMargin}%`;
+            document.getElementById('inventoryTurnover').textContent = `${inventoryTurnover}x`;
+        }
+
+        function togglePaymentStatus(id) {
+            const item = inventoryData.find(item => item.id === id);
+            if (item) {
+                item.paymentStatus = item.paymentStatus === 'paid' ? 'unpaid' : 'paid';
+                updateSuppliersTable();
+                updateSummary();
+            }
+        }
+
+        function deleteInventoryItem(id) {
+            if (confirm('Are you sure you want to delete this inventory item?')) {
+                inventoryData = inventoryData.filter(item => item.id !== id);
+                updateInventoryTable();
+                updateProductDropdown();
+                updateSummary();
+            }
+        }
+
+        function deleteSale(id) {
+            if (confirm('Are you sure you want to delete this sale?')) {
+                const sale = salesData.find(s => s.id === id);
+                if (sale && sale.productId) {
+                    // Return quantity to inventory
+                    const inventoryItem = inventoryData.find(item => item.id == sale.productId);
+                    if (inventoryItem) {
+                        inventoryItem.remainingQuantity += sale.quantitySold;
+                        if (inventoryItem.remainingQuantity > 0) {
+                            inventoryItem.status = 'in-stock';
+                        }
+                    }
+                }
+                salesData = salesData.filter(s => s.id !== id);
+                updateSalesTable();
+                updateInventoryTable();
+                updateProductDropdown();
+                updateSummary();
+            }
+        }
+
+        function clearInventoryForm() {
+            document.getElementById('productName').value = '';
+            document.getElementById('productSupplier').value = '';
+            document.getElementById('purchaseCost').value = '';
+            document.getElementById('quantity').value = '';
+            document.getElementById('inventoryPurchaseDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('inventoryPaymentStatus').value = 'unpaid';
+            document.getElementById('expectedSalePrice').value = '';
+        }
+
+        function clearSalesForm() {
+            document.getElementById('customerName').value = '';
+            document.getElementById('productSold').value = '';
+            document.getElementById('saleAmount').value = '';
+            document.getElementById('quantitySold').value = '';
+            document.getElementById('saleDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('collectionStatus').value = 'pending';
+            document.getElementById('collectionDate').value = '';
+            document.getElementById('orderNotes').value = '';
+        }
+
+        function exportToCSV(type) {
+            let csvContent = '';
+            let filename = '';
+
+            if (type === 'inventory') {
+                csvContent = 'Product,Supplier,Unit Cost,Total Qty,Remaining Qty,Total Cost,Expected Price,Status,Purchase Date,Payment Status\n';
+                inventoryData.forEach(item => {
+                    const totalCost = item.cost * item.quantity;
+                    csvContent += `"${item.product}","${item.supplier}","${item.cost}","${item.quantity}","${item.remainingQuantity}","${totalCost}","${item.expectedPrice}","${item.status}","${item.purchaseDate}","${item.paymentStatus}"\n`;
+                });
+                filename = 'inventory_data.csv';
+            } else if (type === 'sales') {
+                csvContent = 'Customer,Product,Quantity,Sale Amount,Cost,Profit,Sale Date,Status,Collection Date,Notes\n';
+                salesData.forEach(sale => {
+                    csvContent += `"${sale.customer}","${sale.productName}","${sale.quantitySold}","${sale.amount}","${sale.totalCost}","${sale.profit}","${sale.saleDate}","${sale.status}","${sale.collectionDate}","${sale.notes}"\n`;
+                });
+                filename = 'sales_data.csv';
+            } else if (type === 'suppliers') {
+                csvContent = 'Supplier,Product,Amount,Purchase Date,Payment Status\n';
+                inventoryData.forEach(item => {
+                    const totalAmount = item.cost * item.quantity;
+                    csvContent += `"${item.supplier}","${item.product}","${totalAmount}","${item.purchaseDate}","${item.paymentStatus}"\n`;
+                });
+                filename = 'supplier_data.csv';
+            } else if (type === 'profit') {
+                csvContent = 'Product,Units Sold,Revenue,Cost,Profit,Margin %\n';
+                const collectedSales = salesData.filter(sale => sale.status === 'collected');
+                const profitByProduct = {};
+                
+                collectedSales.forEach(sale => {
+                    const product = sale.productName;
+                    if (!profitByProduct[product]) {
+                        profitByProduct[product] = { unitsSold: 0, revenue: 0, cost: 0, profit: 0 };
+                    }
+                    profitByProduct[product].unitsSold += sale.quantitySold;
+                    profitByProduct[product].revenue += sale.amount;
+                    profitByProduct[product].cost += sale.totalCost;
+                    profitByProduct[product].profit += sale.profit;
+                });
+
+                Object.entries(profitByProduct).forEach(([product, data]) => {
+                    const margin = data.revenue > 0 ? (data.profit / data.revenue * 100) : 0;
+                    csvContent += `"${product}","${data.unitsSold}","${data.revenue}","${data.cost}","${data.profit}","${margin.toFixed(1)}"\n`;
+                });
+                filename = 'profit_analysis.csv';
+            }
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Auto-fill sale amount when product is selected
+        document.getElementById('productSold').addEventListener('change', function() {
+            const selectedId = this.value;
+            if (selectedId) {
+                const item = inventoryData.find(item => item.id == selectedId);
+                if (item && item.expectedPrice > 0) {
+                    document.getElementById('saleAmount').value = item.expectedPrice.toFixed(2);
+                }
+            }
+        });
+
+        // Initialize
+        updateSummary();
+        updateProductDropdown();
+    </script>
+</body>
+</html>
