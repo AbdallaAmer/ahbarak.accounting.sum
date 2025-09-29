@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Accounting Summary</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+        
+        .card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        .card .amount {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .sales { color: #27ae60; }
+        .collected { color: #3498db; }
+        .pending { color: #f39c12; }
+        .debt { color: #e74c3c; }
+        .profit { color: #8e44ad; }
+        .inventory { color: #16a085; }
+        
+        .tabs {
+            display: flex;
+            background: #ecf0f1;
+            border-bottom: 1px solid #bdc3c7;
+            overflow-x: auto;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            position: relative;
+            white-space: nowrap;
+            min-width: 140px;
+        }
+        
+        .tab.active {
+            background: white;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #3498db;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        
+        .form-section h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        label {
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #34495e;
+        }
+        
+        input, select {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            min-width: 800px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+            font-size: 0.9em;
+        }
+        
+        th {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        
+        .status-collected { background: #d4edda; color: #155724; }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-paid { background: #d4edda; color: #155724; }
+        .status-unpaid { background: #f8d7da; color: #721c24; }
+        .status-in-stock { background: #d1ecf1; color: #0c5460; }
+        .status-sold { background: #f8d7da; color: #721c24; }
+        
+        .delete-btn, .link-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8em;
+            margin: 2px;
+        }
+        
+        .link-btn {
+            background: #3498db;
+        }
+        
+        .delete-btn:hover { background: #c0392b; }
+        .link-btn:hover { background: #2980b9; }
+        
+        .profit-positive { color: #27ae60; font-weight: bold; }
+        .profit-negative { color: #e74c3c; font-weight: bold; }
+        
+        .linked-item {
+            background: #e8f5e8;
+            border-left: 4px solid #27ae60;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 600px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover { color: black; }
+        
+        .inventory-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .inventory-item.available {
+            border-left-color: #27ae60;
+        }
+        
+        .export-section {
+            margin-top: 30px;
+            text-align: center;
+        }
+        
+        .export-btn {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+            margin: 0 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .summary-cards {
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                gap: 10px;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                min-width: auto;
+            }
+            
+            th, td {
+                padding: 8px;
+                font-size: 0.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Business Accounting & Inventory</h1>
+            <p>Complete financial tracking with purchase-to-sale linking</p>
+        </div>
+        
+        <div class="summary-cards">
+            <div class="card">
+                <h3>💰 Total Sales</h3>
+                <div class="amount sales" id="totalSales">$0.00</div>
+                <small>All recorded sales</small>
+            </div>
+            <div class="card">
+                <h3>✅ Collected</h3>
+                <div class="amount collected" id="totalCollected">$0.00</div>
+                <small>Successfully collected</small>
+            </div>
+            <div class="card">
+                <h3>⏳ Pending</h3>
+                <div class="amount pending" id="totalPending">$0.00</div>
+                <small>Awaiting collection</small>
+            </div>
+            <div class="card">
+                <h3>🏪 Supplier Debt</h3>
+                <div class="amount debt" id="totalDebt">$0.00</div>
+                <small>Outstanding payments</small>
+            </div>
+            <div class="card">
+                <h3>💎 Total Profit</h3>
+                <div class="amount profit" id="totalProfit">$0.00</div>
+                <small>Revenue - Costs</small>
+            </div>
+            <div class="card">
+                <h3>📦 Inventory</h3>
+                <div class="amount inventory" id="inventoryValue">$0.00</div>
+                <small>Unsold stock value</small>
+            </div>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('inventory')">Inventory</button>
+            <button class="tab" onclick="switchTab('sales')">Sales & Orders</button>
+            <button class="tab" onclick="switchTab('suppliers')">Suppliers</button>
+            <button class="tab" onclick="switchTab('profit')">Profit Analysis</button>
+            <button class="tab" onclick="switchTab('reports')">Reports</button>
+        </div>
+        
+        <div id="inventoryTab" class="tab-content active">
+            <div class="form-section">
+                <h3>📦 Add Inventory Item</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Product Name</label>
+                        <input type="text" id="productName" placeholder="Enter product name">
+                    </div>
+                    <div class="form-group">
+                        <label>Supplier</label>
+                        <input type="text" id="productSupplier" placeholder="Supplier name">
+                    </div>
+                    <div class="form-group">
+                        <label>Purchase Cost ($)</label>
+                        <input type="number" id="purchaseCost" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity</label>
+                        <input type="number" id="quantity" placeholder="1" min="1">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Purchase Date</label>
+                        <input type="date" id="inventoryPurchaseDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Payment Status</label>
+                        <select id="inventoryPaymentStatus">
+                            <option value="unpaid">Unpaid</option>
+                            <option value="paid">Paid</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Expected Sale Price ($)</label>
+                        <input type="number" id="expectedSalePrice" step="0.01" placeholder="0.00">
+                    </div>
+                </div>
+                <button onclick="addInventoryItem()">Add to Inventory</button>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Supplier</th>
+                            <th>Cost</th>
+                            <th>Qty</th>
+                            <th>Total Cost</th>
+                            <th>Expected Price</th>
+                            <th>Status</th>
+                            <th>Purchase Date</th>
+                            <th>Payment Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTable">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="salesTab" class="tab-content">
+            <div class="form-section">
+                <h3>➕ Add New Sale</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Customer Name</label>
+                        <input type="text" id="customerName" placeholder="Enter customer name">
+                    </div>
+                    <div class="form-group">
+                        <label>Product Sold</label>
+                        <select id="productSold">
+                            <option value="">Select product from inventory</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Sale Amount ($)</label>
+                        <input type="number" id="saleAmount" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity Sold</label>
+                        <input type="number" id="quantitySold" placeholder="1" min="1">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Sale Date</label>
+                        <input type="date" id="saleDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Collection Status</label>
+                        <select id="collectionStatus">
+                            <option value="pending">Pending Collection</option>
+                            <option value="collected">Collected</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Collection Date</label>
+                        <input type="date" id="collectionDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <input type="text" id="orderNotes" placeholder="Additional notes">
+                    </div>
+                </div>
+                <button onclick="addSale()">Add Sale</button>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Product</th>
+                            <th>Qty</th>
+                            <th>Sale Amount</th>
+                            <th>Cost</th>
+                            <th>Profit</th>
+                            <th>Sale Date</th>
+                            <th>Status</th>
+                            <th>Collection Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="salesTable">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="suppliersTab" class="tab-content">
+            <div class="form-section">
+                <h3>📋 Supplier Transactions Summary</h3>
+                <p>This shows all supplier transactions automatically calculated from your inventory purchases.</p>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Supplier</th>
+                            <th>Product</th>
+                            <th>Amount</th>
+                            <th>Purchase Date</th>
+                            <th>Payment Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="suppliersTable">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="profitTab" class="tab-content">
+            <div class="form-section">
+                <h3>💰 Profit Analysis</h3>
+                <div id="profitSummary">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Total Revenue (Collected)</label>
+                            <div id="totalRevenue" style="font-size: 1.5em; color: #27ae60; font-weight: bold;">$0.00</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Total Costs</label>
+                            <div id="totalCosts" style="font-size: 1.5em; color: #e74c3c; font-weight: bold;">$0.00</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Net Profit</label>
+                            <div id="netProfit" style="font-size: 1.8em; font-weight: bold;">$0.00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Units Sold</th>
+                            <th>Revenue</th>
+                            <th>Cost</th>
+                            <th>Profit per Unit</th>
+                            <th>Total Profit</th>
+                            <th>Margin %</th>
+                        </tr>
+                    </thead>
+                    <tbody id="profitTable">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="reportsTab" class="tab-content">
+            <div class="form-section">
+                <h3>📈 Business Performance Report</h3>
+                <div id="reportSummary">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Collection Rate</label>
+                            <div id="collectionRate" style="font-size: 1.3em; font-weight: bold;">0%</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Average Profit Margin</label>
+                            <div id="avgProfitMargin" style="font-size: 1.3em; font-weight: bold;">0%</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Inventory Turnover</label>
+                            <div id="inventoryTurnover" style="font-size: 1.3em; font-weight: bold;">0x</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="export-section">
+                <h3>📥 Export Data</h3>
+                <button class="export-btn" onclick="exportToCSV('inventory')">Export Inventory</button>
+                <button class="export-btn" onclick="exportToCSV('sales')">Export Sales</button>
+                <button class="export-btn" onclick="exportToCSV('suppliers')">Export Suppliers</button>
+                <button class="export-btn" onclick="exportToCSV('profit')">Export Profit Analysis</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Link Modal -->
+    <div id="linkModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Link Sale to Inventory Item</h3>
+            <div id="availableItems"></div>
+        </div>
+    </div>
+
+    <script>
+        let inventoryData = [];
+        let salesData = [];
+
+        // Set today's date as default
+        document.getElementById('saleDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('inventoryPurchaseDate').value = new Date().toISOString().split('T')[0];
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            event.target.classList.add('active');
+            
+            if (tabName === 'reports') {
+                updateReports();
+            } else if (tabName === 'profit') {
+                updateProfitAnalysis();
+            }
+        }
+
+        function addInventoryItem() {
+            const productName = document.getElementById('productName').value;
+            const supplier = document.getElementById('productSupplier').value;
+            const cost = parseFloat(document.getElementById('purchaseCost').value);
+            const quantity = parseInt(document.getElementById('quantity').value);
+            const purchaseDate = document.getElementById('inventoryPurchaseDate').value;
+            const paymentStatus = document.getElementById('inventoryPaymentStatus').value;
+            const expectedPrice = parseFloat(document.getElementById('expectedSalePrice').value) || 0;
+
+            if (!productName || !supplier || !cost || !quantity || !purchaseDate) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            const item = {
+                id: Date.now(),
+                product: productName,
+                supplier: supplier,
+                cost: cost,
+                quantity: quantity,
+                remainingQuantity: quantity,
+                purchaseDate: purchaseDate,
+                paymentStatus: paymentStatus,
+                expectedPrice: expectedPrice,
+                status: 'in-stock'
+            };
+
+            inventoryData.push(item);
+            updateInventoryTable();
+            updateProductDropdown();
+            updateSummary();
+            clearInventoryForm();
+        }
+
+        function addSale() {
+            const customerName = document.getElementById('customerName').value;
+            const productId = document.getElementById('productSold').value;
+            const saleAmount = parseFloat(document.getElementById('saleAmount').value);
+            const quantitySold = parseInt(document.getElementById('quantitySold').value);
+            const saleDate = document.getElementById('saleDate').value;
+            const collectionStatus = document.getElementById('collectionStatus').value;
+            const collectionDate = document.getElementById('collectionDate').value;
+            const notes = document.getElementById('orderNotes').value;
+
+            if (!customerName || !saleAmount || !saleDate || !quantitySold) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            let linkedInventoryItem = null;
+            let costPerUnit = 0;
+
+            if (productId) {
+                linkedInventoryItem = inventoryData.find(item => item.id == productId);
+                if (linkedInventoryItem) {
+                    if (linkedInventoryItem.remainingQuantity < quantitySold) {
+                        alert(`Not enough stock! Only ${linkedInventoryItem.remainingQuantity} units available.`);
+                        return;
+                    }
+                    linkedInventoryItem.remainingQuantity -= quantitySold;
+                    if (linkedInventoryItem.remainingQuantity === 0) {
+                        linkedInventoryItem.status = 'sold';
+                    }
+                    costPerUnit = linkedInventoryItem.cost;
+                }
+            }
+
+            const sale = {
+                id: Date.now(),
+                customer: customerName,
+                productId: productId,
+                productName: linkedInventoryItem ? linkedInventoryItem.product : 'Manual Entry',
+                amount: saleAmount,
+                quantitySold: quantitySold,
+                costPerUnit: costPerUnit,
+                totalCost: costPerUnit * quantitySold,
+                profit: saleAmount - (costPerUnit * quantitySold),
+                saleDate: saleDate,
+                status: collectionStatus,
+                collectionDate: collectionDate || '',
+                notes: notes
+            };
+
+            salesData.push(sale);
+            updateSalesTable();
+            updateInventoryTable();
+            updateProductDropdown();
+            updateSummary();
+            clearSalesForm();
+        }
+
+        function updateInventoryTable() {
+            const tbody = document.getElementById('inventoryTable');
+            tbody.innerHTML = '';
+
+            inventoryData.forEach(item => {
+                const row = tbody.insertRow();
+                const totalCost = item.cost * item.quantity;
+                const statusClass = item.remainingQuantity > 0 ? 'in-stock' : 'sold';
+                
+                row.className = item.remainingQuantity === 0 ? 'linked-item' : '';
+                row.innerHTML = `
+                    <td>${item.product}</td>
+                    <td>${item.supplier}</td>
+                    <td>$${item.cost.toFixed(2)}</td>
+                    <td>${item.remainingQuantity}/${item.quantity}</td>
+                    <td>$${totalCost.toFixed(2)}</td>
+                    <td>$${item.expectedPrice.toFixed(2)}</td>
+                    <td><span class="status-badge status-${statusClass}">${statusClass.replace('-', ' ')}</span></td>
+                    <td>${item.purchaseDate}</td>
+                    <td><span class="status-badge status-${item.paymentStatus}">${item.paymentStatus}</span></td>
+                    <td><button class="delete-btn" onclick="deleteInventoryItem(${item.id})">Delete</button></td>
+                `;
+            });
+        }
+
+        function updateSalesTable() {
+            const tbody = document.getElementById('salesTable');
+            tbody.innerHTML = '';
+
+            salesData.forEach(sale => {
+                const row = tbody.insertRow();
+                const profitClass = sale.profit >= 0 ? 'profit-positive' : 'profit-negative';
+                
+                row.innerHTML = `
+                    <td>${sale.customer}</td>
+                    <td>${sale.productName}</td>
+                    <td>${sale.quantitySold}</td>
+                    <td>$${sale.amount.toFixed(2)}</td>
+                    <td>$${sale.totalCost.toFixed(2)}</td>
+                    <td class="${profitClass}">$${sale.profit.toFixed(2)}</td>
+                    <td>${sale.saleDate}</td>
+                    <td><span class="status-badge status-${sale.status}">${sale.status}</span></td>
+                    <td>${sale.collectionDate || 'N/A'}</td>
+                    <td><button class="delete-btn" onclick="deleteSale(${sale.id})">Delete</button></td>
+                `;
+            });
+        }
+
+        function updateSuppliersTable() {
+            const tbody = document.getElementById('suppliersTable');
+            tbody.innerHTML = '';
+
+            inventoryData.forEach(item => {
+                const row = tbody.insertRow();
+                const totalAmount = item.cost * item.quantity;
+                
+                row.innerHTML = `
+                    <td>${item.supplier}</td>
+                    <td>${item.product}</td>
+                    <td>$${totalAmount.toFixed(2)}</td>
+                    <td>${item.purchaseDate}</td>
+                    <td><span class="status-badge status-${item.paymentStatus}">${item.paymentStatus}</span></td>
+                    <td><button class="link-btn" onclick="togglePaymentStatus(${item.id})">${item.paymentStatus === 'paid' ? 'Mark Unpaid' : 'Mark Paid'}</button></td>
+                `;
+            });
+        }
+
+        function updateProductDropdown() {
+            const select = document.getElementById('productSold');
+            select.innerHTML = '<option value="">Select product from inventory</option>';
+            
+            inventoryData.filter(item => item.remainingQuantity > 0).forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = `${item.product} (${item.remainingQuantity} available)`;
+                select.appendChild(option);
+            });
+        }
+
+        function updateSummary() {
+            const totalSales = salesData.reduce((sum, sale) => sum + sale.amount, 0);
+            const totalCollected = salesData.filter(sale => sale.status === 'collected').reduce((sum, sale) => sum + sale.amount, 0);
+            const totalPending = salesData.filter(sale => sale.status === 'pending').reduce((sum, sale) => sum +
